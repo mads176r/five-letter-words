@@ -1,34 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 DateTime startTime = DateTime.Now;
 
 string fileLocation = "C:\\Users\\HFGF\\Downloads\\final.txt";
 
-List<int> bitArraysToRead = GetBitArrays(fileLocation);
+//List<string> stringToRead = new List<string>();
+//stringToRead = GetString(fileLocation);
 
-int finalNumber = Begin(bitArraysToRead);
+List<int> bitArraysToRead = new List<int>();
+bitArraysToRead = GetString(fileLocation);
 
-Console.WriteLine(finalNumber);
 
-PrintTimeSpan();
+int finlaNumber = Begin(bitArraysToRead);
+
+Console.WriteLine(finlaNumber);
+
+GetTimeSpan();
+
+
+
+
+
 
 int Begin(List<int> bitArraysToRead)
 {
     int totalThreads = 5;
-    int segmentSize = bitArraysToRead.Count / totalThreads;
-    int result = 0;
 
-    Parallel.For(0, totalThreads, i =>
+    Task<int>[] tasks = new Task<int>[totalThreads];
+    int segmentSize = bitArraysToRead.Count / totalThreads;
+
+    for (int i = 0; i < totalThreads; i++)
     {
         int start = i * segmentSize;
         int end = (i == totalThreads - 1) ? bitArraysToRead.Count : start + segmentSize;
-        result += GetNumberOfPossibilities(bitArraysToRead, start, end);
-    });
+        tasks[i] = Task.Run(() => GetNumberOfPossibilities(bitArraysToRead, start, end));
+    }
+
+    Task.WaitAll(tasks);
+    int result = tasks.Sum(task => task.Result);
+    
+
 
     return result;
 }
@@ -56,23 +69,23 @@ int GetNumberOfPossibilities(List<int> bitArraysToRead, int start, int end)
                     {
                         if (((bitArraysToRead[first] | bitArraysToRead[second] | bitArraysToRead[third] | bitArraysToRead[fourth]) & bitArraysToRead[fifth]) == 0)
                         {
-                            // Uncomment this section to use the bit list and translation features
-                            /*
-                            List<int> tempBitList = new List<int>();
-                            tempBitList.Add(bitArraysToRead[first]);
-                            tempBitList.Add(bitArraysToRead[second]);
-                            tempBitList.Add(bitArraysToRead[third]);
-                            tempBitList.Add(bitArraysToRead[fourth]);
-                            tempBitList.Add(bitArraysToRead[fifth]);
+                            //List<int> tempBitList = new List<int>();
+                            //tempBitList.Add(bitArraysToRead[first]);
+                            //tempBitList.Add(bitArraysToRead[second]);
+                            //tempBitList.Add(bitArraysToRead[third]);
+                            //tempBitList.Add(bitArraysToRead[fourth]);
+                            //tempBitList.Add(bitArraysToRead[fifth]);
 
-                            string bitTranslation = BitArrayListToString(tempBitList);
-                            Console.WriteLine(bitTranslation);
+                            //string bitTranslation = BitArrayListToString(tempBitList);
 
-                            bitTranslation = "";
-                            PrintTimeSpan();
-                            */
+                            //Console.WriteLine(bitTranslation);
+
+                            //bitTranslation = "";
+
+                            //GetTimeSpan();
 
                             result++;
+                            Console.WriteLine(result);
                         }
                     }
                 }
@@ -83,35 +96,51 @@ int GetNumberOfPossibilities(List<int> bitArraysToRead, int start, int end)
     return result;
 }
 
-List<int> GetBitArrays(string fileLocation)
+
+
+
+List<int> GetString(string fileLocatione)
 {
+    var file = fileLocatione;
+    //List<string> validLines = new List<string>();
     List<int> bitArrays = new List<int>();
 
-    using (StreamReader sr = new StreamReader(fileLocation))
+    using (System.IO.StreamReader sr = new System.IO.StreamReader(file))
     {
         string line;
+        
         while ((line = sr.ReadLine()) != null)
         {
-            if (line.Length == 5 && line.Distinct().Count() == 5)
-            {
-                bitArrays.Add(StringToBitArray(line));
-            }
+            if (line.Length != 5) continue;
+            if (line.Distinct().Count() != 5) continue;
+
+            //validLines.Add(line);
+            bitArrays.Add(StringToBitArray(line));
+            
         }
     }
 
-    Console.WriteLine("Amount of valid words: " + bitArrays.Count);
+    Console.WriteLine("Amount of valid words: " + bitArrays.Count());
     return bitArrays;
+    
 }
 
-void PrintTimeSpan()
+
+void GetTimeSpan()
 {
-    TimeSpan diff = DateTime.Now - startTime;
+    DateTime endTime = DateTime.Now;
+
+    TimeSpan diff = (endTime - startTime).Duration();
+
     Console.WriteLine(diff);
 }
+
+
 
 static int StringToBitArray(string input)
 {
     int bitArray = 0;
+
     foreach (char c in input.ToLower())
     {
         if (c >= 'a' && c <= 'z')
@@ -120,6 +149,9 @@ static int StringToBitArray(string input)
             bitArray |= (1 << position);
         }
     }
+
+    //Console.WriteLine("{0} - {1}", input, bitArray.ToString("B"));
+
     return bitArray;
 }
 
