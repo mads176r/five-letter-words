@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Globalization;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 DateTime startTime = DateTime.Now;
 
@@ -12,86 +15,83 @@ string fileLocation = "C:\\Users\\HFGF\\Downloads\\final.txt";
 List<int> bitArraysToRead = new List<int>();
 bitArraysToRead = GetString(fileLocation);
 
+int totalPossibilities = await Begin(bitArraysToRead);
 
-int finlaNumber = Begin(bitArraysToRead);
-
-Console.WriteLine(finlaNumber);
+Console.WriteLine(totalPossibilities);
 
 GetTimeSpan();
 
 
 
-
-
-
-int Begin(List<int> bitArraysToRead)
+static async Task<int> Begin(List<int> bitArraysToRead)
 {
-    int totalThreads = 5;
+    const int maxConcurrentTasks = 12; // Limit to 5 concurrent tasks
+    var semaphore = new SemaphoreSlim(maxConcurrentTasks);
 
-    Task<int>[] tasks = new Task<int>[totalThreads];
-    int segmentSize = bitArraysToRead.Count / totalThreads;
+    var tasks = new List<Task<int>>();
 
-    for (int i = 0; i < totalThreads; i++)
+    // Create tasks for different starting points
+    for (int i = 0; i < bitArraysToRead.Count; i++)
     {
-        int start = i * segmentSize;
-        int end = (i == totalThreads - 1) ? bitArraysToRead.Count : start + segmentSize;
-        tasks[i] = Task.Run(() => GetNumberOfPossibilities(bitArraysToRead, start, end));
+        await semaphore.WaitAsync();
+
+        var task = Task.Run(async () =>
+        {
+            try
+            {
+                //Console.WriteLine("Task started: " + i);
+                // Call your function with different start points
+                return GetNumberOfPossibilities(bitArraysToRead, i);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        tasks.Add(task);
     }
 
-    Task.WaitAll(tasks);
-    int result = tasks.Sum(task => task.Result);
-    
+    // Wait for all tasks to complete and collect results
+    var results = await Task.WhenAll(tasks);
 
-
-    return result;
+    // Aggregate results
+    int total = results.Sum();
+    return total;
 }
 
-int GetNumberOfPossibilities(List<int> bitArraysToRead, int start, int end)
+
+static int GetNumberOfPossibilities(List<int> bitArraysToRead, int startWord)
 {
     int wordAmount = bitArraysToRead.Count;
     int result = 0;
 
-    for (int first = start; first < end; first++)
+    
+    for (int second = startWord + 1; second < wordAmount; second++)
     {
-        for (int second = first + 1; second < wordAmount; second++)
+        if ((bitArraysToRead[startWord] & bitArraysToRead[second]) != 0) continue;
+
+        for (int third = second + 1; third < wordAmount; third++)
         {
-            if ((bitArraysToRead[first] & bitArraysToRead[second]) != 0) continue;
+            if (((bitArraysToRead[startWord] | bitArraysToRead[second]) & bitArraysToRead[third]) != 0) continue;
 
-            for (int third = second + 1; third < wordAmount; third++)
+            for (int fourth = third + 1; fourth < wordAmount; fourth++)
             {
-                if (((bitArraysToRead[first] | bitArraysToRead[second]) & bitArraysToRead[third]) != 0) continue;
+                if (((bitArraysToRead[startWord] | bitArraysToRead[second] | bitArraysToRead[third]) & bitArraysToRead[fourth]) != 0) continue;
 
-                for (int fourth = third + 1; fourth < wordAmount; fourth++)
+                for (int fifth = fourth + 1; fifth < wordAmount; fifth++)
                 {
-                    if (((bitArraysToRead[first] | bitArraysToRead[second] | bitArraysToRead[third]) & bitArraysToRead[fourth]) != 0) continue;
-
-                    for (int fifth = fourth + 1; fifth < wordAmount; fifth++)
+                    if (((bitArraysToRead[startWord] | bitArraysToRead[second] | bitArraysToRead[third] | bitArraysToRead[fourth]) & bitArraysToRead[fifth]) == 0)
                     {
-                        if (((bitArraysToRead[first] | bitArraysToRead[second] | bitArraysToRead[third] | bitArraysToRead[fourth]) & bitArraysToRead[fifth]) == 0)
-                        {
-                            //List<int> tempBitList = new List<int>();
-                            //tempBitList.Add(bitArraysToRead[first]);
-                            //tempBitList.Add(bitArraysToRead[second]);
-                            //tempBitList.Add(bitArraysToRead[third]);
-                            //tempBitList.Add(bitArraysToRead[fourth]);
-                            //tempBitList.Add(bitArraysToRead[fifth]);
 
-                            //string bitTranslation = BitArrayListToString(tempBitList);
-
-                            //Console.WriteLine(bitTranslation);
-
-                            //bitTranslation = "";
-
-                            //GetTimeSpan();
-
-                            result++;
-                            Console.WriteLine(result);
-                        }
+                        result++;
+                        Console.WriteLine(result);
                     }
                 }
             }
         }
     }
+    
 
     return result;
 }
