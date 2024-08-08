@@ -4,69 +4,52 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Collections.Concurrent;
 
 DateTime startTime = DateTime.Now;
 
 string fileLocation = "C:\\Users\\HFGF\\Downloads\\final.txt";
 
-//List<string> stringToRead = new List<string>();
-//stringToRead = GetString(fileLocation);
-
 List<int> bitArraysToRead = new List<int>();
-bitArraysToRead = GetString(fileLocation);
 
-int totalPossibilities = await Begin(bitArraysToRead);
+(bitArraysToRead, int indexNoLongerUsed) = GetString(fileLocation);
 
-Console.WriteLine(totalPossibilities);
+int totalPossibilities = CalculateTotalPossibilities(bitArraysToRead, indexNoLongerUsed);
+
+Console.WriteLine("\nTotal possibilities: " + totalPossibilities);
 
 GetTimeSpan();
 
 
 
-static async Task<int> Begin(List<int> bitArraysToRead)
+
+
+static int CalculateTotalPossibilities(List<int> bitArraysToRead, int endIndex)
 {
-    const int maxConcurrentTasks = 12; // Limit to 5 concurrent tasks
-    var semaphore = new SemaphoreSlim(maxConcurrentTasks);
+    var results = new ConcurrentBag<int>();
 
-    var tasks = new List<Task<int>>();
-
-    // Create tasks for different starting points
-    for (int i = 0; i < bitArraysToRead.Count; i++)
+    // Use Parallel.For to parallelize the calls to GetNumberOfPossibilities
+    Parallel.For(0, endIndex, startWord =>
     {
-        await semaphore.WaitAsync();
-
-        var task = Task.Run(async () =>
+        int possibilities = GetNumberOfPossibilities(bitArraysToRead, startWord);
+        if (possibilities > 0)
         {
-            try
-            {
-                //Console.WriteLine("Task started: " + i);
-                // Call your function with different start points
-                return GetNumberOfPossibilities(bitArraysToRead, i);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
+            results.Add(possibilities);
+        }
+    });
 
-        tasks.Add(task);
-    }
-
-    // Wait for all tasks to complete and collect results
-    var results = await Task.WhenAll(tasks);
-
-    // Aggregate results
-    int total = results.Sum();
-    return total;
+    return results.Sum();
 }
-
 
 static int GetNumberOfPossibilities(List<int> bitArraysToRead, int startWord)
 {
     int wordAmount = bitArraysToRead.Count;
     int result = 0;
 
-    
+    Console.WriteLine("start index:" + startWord);
+
     for (int second = startWord + 1; second < wordAmount; second++)
     {
         if ((bitArraysToRead[startWord] & bitArraysToRead[second]) != 0) continue;
@@ -83,7 +66,6 @@ static int GetNumberOfPossibilities(List<int> bitArraysToRead, int startWord)
                 {
                     if (((bitArraysToRead[startWord] | bitArraysToRead[second] | bitArraysToRead[third] | bitArraysToRead[fourth]) & bitArraysToRead[fifth]) == 0)
                     {
-
                         result++;
                         Console.WriteLine(result);
                     }
@@ -91,7 +73,6 @@ static int GetNumberOfPossibilities(List<int> bitArraysToRead, int startWord)
             }
         }
     }
-    
 
     return result;
 }
@@ -99,29 +80,54 @@ static int GetNumberOfPossibilities(List<int> bitArraysToRead, int startWord)
 
 
 
-List<int> GetString(string fileLocatione)
+(List<int>, int) GetString(string fileLocatione)
 {
     var file = fileLocatione;
-    //List<string> validLines = new List<string>();
+    List<string> validLines = new List<string>();
     List<int> bitArrays = new List<int>();
+    Dictionary<char, int> charFrequency = new Dictionary<char, int>();
 
-    using (System.IO.StreamReader sr = new System.IO.StreamReader(file))
+    var logFile = File.ReadAllLines(fileLocatione);
+    List<string> validWords = new List<string>();
+    List<int> validBits = new List<int>();
+
+
+    foreach (var word in logFile)
     {
-        string line;
-        
-        while ((line = sr.ReadLine()) != null)
+        if (word.Length != 5) continue;
+        if (word.Distinct().Count() != 5) continue;
+        foreach (var c in word)
         {
-            if (line.Length != 5) continue;
-            if (line.Distinct().Count() != 5) continue;
-
-            //validLines.Add(line);
-            bitArrays.Add(StringToBitArray(line));
+            if (!validBits.Contains(StringToBitArray(word)))
+            {
+                validBits.Add(StringToBitArray(word));
+                validWords.Add(word);
+            }
             
+            if (charFrequency.ContainsKey(c))
+            {
+                charFrequency[c]++;
+            }
+            else
+            {
+                charFrequency[c] = 1;
+            }
         }
     }
 
+    validLines = validWords.OrderBy(word => word.Sum(c => charFrequency[c])).ToList();
+
+    int indexNoLongerInUse = LeastUsedLetter(charFrequency);
+
+    foreach (var word in validLines)
+    {
+        bitArrays.Add(StringToBitArray(word));
+    }
+
+
     Console.WriteLine("Amount of valid words: " + bitArrays.Count());
-    return bitArrays;
+
+    return (bitArrays, indexNoLongerInUse);
     
 }
 
@@ -155,24 +161,24 @@ static int StringToBitArray(string input)
     return bitArray;
 }
 
-string BitArrayListToString(List<int> bitArrayList)
+
+int LeastUsedLetter(Dictionary<char, int> charFrequency)
 {
-    List<string> strings = new List<string>();
+    var sortedCharFrequency = charFrequency.OrderBy(kv => kv.Value);
 
-    foreach (int bitArray in bitArrayList)
-    {
-        List<char> chars = new List<char>();
+    // Step 3: Get the two least used letters and their counts
+    var leastUsedLetters = sortedCharFrequency.Take(2).ToArray();
+    var firstLeastUsedLetter = leastUsedLetters[0];
+    var secondLeastUsedLetter = leastUsedLetters[1];
 
-        for (int i = 0; i < 26; i++)
-        {
-            if ((bitArray & (1 << i)) != 0)
-            {
-                chars.Add((char)('a' + i));
-            }
-        }
+    // Step 4: Calculate the index at which the two least used letters are no longer used
+    int indexNoLongerInUse = firstLeastUsedLetter.Value + secondLeastUsedLetter.Value + 1;
 
-        strings.Add(new string(chars.ToArray()));
-    }
 
-    return string.Join(" ", strings);
+    return indexNoLongerInUse;
 }
+
+
+
+
+
