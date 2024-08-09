@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "five letter words", "five l
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "five letter word library", "..\five letter word library\five letter word library\five letter word library.csproj", "{0A972E81-BA94-40CE-90A4-C9C8591129BE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "letter words WPF", "letter words WPF\letter words WPF.csproj", "{B4BF2D22-9473-4938-B2C8-562243CA3046}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{0A972E81-BA94-40CE-90A4-C9C8591129BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A972E81-BA94-40CE-90A4-C9C8591129BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A972E81-BA94-40CE-90A4-C9C8591129BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4BF2D22-9473-4938-B2C8-562243CA3046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4BF2D22-9473-4938-B2C8-562243CA3046}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4BF2D22-9473-4938-B2C8-562243CA3046}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4BF2D22-9473-4938-B2C8-562243CA3046}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
