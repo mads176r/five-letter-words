@@ -18,7 +18,7 @@ namespace letter_words_WPF
     {
         public MainWindow()
         {
-            InitializeComponent();
+            //InitializeComponent();
         }
     }
 }
